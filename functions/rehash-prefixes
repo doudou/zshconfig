@@ -1,0 +1,112 @@
+typeset -gU  PATH path
+typeset -gU  MANPATH manpath
+typeset -gTU PKG_CONFIG_PATH pkg_config_path
+typeset -gTU LD_LIBRARY_PATH ld_library_path
+typeset -gTU PYTHONPATH python_path
+typeset -gTU KDEDIRS kdedirs
+typeset -gTU RUBYLIB rubylib
+typeset -gTU XDG_DATA_DIRS xdg_data_dirs
+
+# Input: prefixes, kde_prefixes
+function rehash-prefixes() {
+    export PATH MANPATH PKG_CONFIG_PATH LD_LIBRARY_PATH PYTHONPATH KDEDIRS RUBYLIB
+
+    # Make sure that manpath -g is included in MANPATH
+    # Only valable with manpath v2
+    if [[ -f /etc/manpath.config ]]; then
+        manpath=(${(s.:.)"$(`which manpath` -g)"} $manpath)
+    fi
+
+    local allprefixes
+    allprefixes=($prefixes $kde_prefixes)
+    
+    setopt nullglob
+
+    # Binary directories
+    typeset -U bindirs
+    typeset -U libdirs
+    bindirs=(${^allprefixes}/{local/,}bin(/))
+    libdirs=(${^allprefixes}/{local/,}lib(/))
+    # Add host types
+    if (( $#host_types )); then
+        bindirs=($bindirs ${^bindirs}/${^host_types}(/))
+        libdirs=($libdirs ${^libdirs}/${^host_types}(/))
+    fi
+
+    # Set the environment vars
+    path=($bindirs $path)
+    pkg_config_path=(${^libdirs}/pkgconfig(/) $pkg_config_path)
+    python_path=(${^libdirs}/python*/site-packages(/) $python_path)
+    xdg_data_dirs=(${^allprefixes}/share/(/) $xdg_data_dirs)
+
+    rubylib=($libdirs $rubylib)
+
+    if which $RUBY > /dev/null 2>&1; then
+        local ruby_sitesuffix
+        local ruby_sitelibsuffix
+        local ruby_sitearchsuffix
+        local ruby_search
+        ruby_libsuffix=ruby${"$(RUBYOPT= $RUBY -rrbconfig -e 'puts RbConfig::CONFIG["rubylibdir"]')"##*ruby}
+        ruby_archsuffix=ruby${"$(RUBYOPT= $RUBY -rrbconfig -e 'puts RbConfig::CONFIG["archdir"]')"##*ruby}
+
+        ruby_sitesuffix=site_ruby${"$(RUBYOPT= $RUBY -rrbconfig -e 'puts RbConfig::CONFIG["sitedir"]')"##*site_ruby}
+        ruby_sitelibsuffix=site_ruby${"$(RUBYOPT= $RUBY -rrbconfig -e 'puts RbConfig::CONFIG["sitelibdir"]')"##*site_ruby}
+        ruby_sitearchsuffix=site_ruby${"$(RUBYOPT= $RUBY -rrbconfig -e 'puts RbConfig::CONFIG["sitearchdir"]')"##*site_ruby}
+
+        ruby_search=($ruby_sitesuffix $ruby_sitelibsuffix $ruby_sitearchsuffix $ruby_libsuffix $ruby_archsuffix)
+        rubylib=(${^libdirs}/${^ruby_search} ${^libdirs}/ruby/${^ruby_search} ${^libdirs}/{,ruby/}site_ruby${^ruby_search}(/) $rubylib)
+    fi
+
+    for kde_dir in $kde_prefixes; do
+	ld_library_path=($kde_dir/lib $ld_library_path)
+    done
+    kdedirs=($kde_prefixes $kdedirs)
+
+    manpath=(${^allprefixes}/{local/,}man(/) ${^allprefixes}/{local/,}share/man(/) $manpath)
+
+    #### Filtering
+    rhp_filter_directories path
+    rhp_filter_directories ld_library_path
+    rhp_filter_directories pkg_config_path
+    rhp_filter_directories python_path
+    rhp_filter_directories kdedirs
+    rhp_filter_directories rubylib
+    rhp_filter_directories manpath
+    rhp_filter_directories xdg_data_dirs
+    # Undefine any empty variable
+    rhp_export_nonempty PATH
+    rhp_export_nonempty MANPATH
+    rhp_export_nonempty PYTHONPATH
+    rhp_export_nonempty RUBYLIB
+    rhp_export_nonempty PKG_CONFIG_PATH
+    rhp_export_nonempty XDG_DATA_DIRS
+}
+
+function rhp_export_nonempty {
+    setopt noextendedglob
+    var_name=$1
+    if [[ -z "${(P)var_name}" ]]; then
+        typeset +x $var_name
+    else
+        typeset -x $var_name
+    fi
+}
+
+function rhp_filter_directories {
+    setopt noextendedglob
+    array_name=$1
+    old=""
+    new_array=()
+
+    old=(${(P)array_name})
+    for d in $old; do
+        if [[ -d "$d" ]]; then
+            new_array=($new_array $d)
+        fi
+    done
+
+    eval "$array_name=($new_array)"
+}
+
+rehash-prefixes
+

@@ -1,0 +1,15 @@
+_load_hosts()
+{
+  setopt extendedglob
+  typeset -gaU known_hosts
+  if [ -f $HOME/.ssh/known_hosts ]; then
+    known_hosts=($known_hosts ${${${(f)"$(<$HOME/.ssh/known_hosts)"}%%\ *}%%,*})
+  fi
+  if [ -f $HOME/.ssh/known_hosts2 ]; then
+    known_hosts=($known_hosts ${${${(f)"$(<$HOME/.ssh/known_hosts2)"}%%\ *}%%,*})
+  fi
+
+  known_hosts=($known_hosts ${=${${(f)"$(</etc/hosts)"}:#\#*}%%\#*})
+  known_hosts=(${${known_hosts}:#([0-9.]#|[a-fA-F0-9]#::[a-fA-F0-9]#)})
+  known_hosts=(${known_hosts:#\|[0-9]\|*})
+}

@@ -1,0 +1,16 @@
+function aenv() {
+    dir=$PWD
+    while test "x$dir" != "x/"; do
+        if test -f $dir/env.sh; then
+            echo "sourcing $dir/env.sh"
+            source $dir/env.sh
+            break
+        fi
+        dir=`dirname $dir`
+    done
+    if test "x$dir" = "x/"; then
+        echo "found no env.sh file to load"
+    fi
+}
+
+

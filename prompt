@@ -1,0 +1,31 @@
+autoload -U promptinit
+promptinit
+
+ROOT_COLOR="%{%F{red}%}"
+USER_COLOR="%{%F{green}%}"
+
+typeset -aU FLAGS
+
+if [ ! -z $SSH_CONNECTION ]; then
+  FLAGS=("remote" $FLAGS)
+fi
+
+if [[ -n $VIM ]] || [[ -n $VIMRUNTIME ]]; then
+  FLAGS=("vim" $FLAGS)
+fi
+
+if [[ "$TERM" = "screen" ]]; then
+  FLAGS=("screen" ${FLAGS:#remote})
+fi
+
+if (( $#FLAGS )); then
+  FLAG_STRING="$RST%{$B%F{magenta}%}%B[${(j.|.)FLAGS}]%b"
+fi
+
+
+
+RST="%b%f%k"
+TIME_COLOR="%{%F{green}%}"
+
+PS1="$prompt_newline$RST $TIME_COLOR(%T) $FLAG_STRING%(#.$ROOT_COLOR.$USER_COLOR)%n@%m $RST${prompt_newline}[%25<...<%~]%(#.#.%%) "
+

@@ -1,0 +1,9 @@
+#! /usr/bin/env zsh
+
+( cd $HOME/.zsh/functions; 
+    setopt extendedglob
+    for i in ^*.zwc(N); do
+        zcompile -U -M $i
+    done
+)
+
