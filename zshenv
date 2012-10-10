@@ -1,15 +1,17 @@
 typeset -gU prefixes
 typeset -gU kde_prefixes
 
-path=($HOME/bin /usr/local/bin /usr/bin /bin)
-prefixes=()
-kde_prefixes=()
-LD_LIBRARY_PATH=
-RUBYLIB=
-rubylib=()
-PKG_CONFIG_PATH=
-pkg_config_path=()
-RUBYOPT=
+if [[ -o interactive ]]; then
+    path=($HOME/bin /usr/local/bin /usr/bin /bin)
+    prefixes=()
+    kde_prefixes=()
+    LD_LIBRARY_PATH=
+    RUBYLIB=
+    rubylib=()
+    PKG_CONFIG_PATH=
+    pkg_config_path=()
+    RUBYOPT=
+fi
 
 if test -z "$RUBY"; then
     RUBY=ruby
